@@ -1,13 +1,14 @@
 "use client";
 
 import { useInView as useFramerInView } from "framer-motion";
+import type { UseInViewOptions } from "framer-motion";
 import { RefObject } from "react";
 
 export const useInView = (
   ref: RefObject<Element>,
   options?: {
     once?: boolean;
-    margin?: string;
+    margin?: UseInViewOptions["margin"];
     amount?: "some" | "all" | number;
   }
 ) => {

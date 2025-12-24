@@ -3,10 +3,60 @@
 "use client";
 
 import { CrowdCanvas } from "@/components/ui/skiper39";
+import { useAuth } from "@/lib/firebase-context";
+import { useState } from "react";
 
 const LandingPageC1 = () => {
+  const { signInWithGoogle, user, loading } = useAuth();
+  const [showWarning, setShowWarning] = useState(false);
+
+  const handleSignInClick = () => {
+    setShowWarning(true);
+  };
+
+  const handleProceed = () => {
+    setShowWarning(false);
+    signInWithGoogle();
+  };
+
   return (
     <div className="relative min-h-screen w-full snap-y snap-mandatory overflow-y-scroll overflow-x-hidden h-screen">
+      {/* Email Warning Modal */}
+      {showWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
+          <div className="backdrop-blur-xl bg-white/95 p-8 sm:p-10 md:p-12 rounded-3xl border-2 border-black/20 max-w-lg w-full shadow-2xl">
+            <h3 className="font-[family-name:var(--font-pixel)] text-2xl sm:text-3xl mb-6 text-center tracking-wider">
+              IMPORTANT NOTICE
+            </h3>
+            <div className="space-y-4 mb-8">
+              <p className="font-sans text-lg sm:text-xl text-black/80 text-center leading-relaxed">
+                Only <span className="font-bold text-black">ARKA JAIN UNIVERSITY students</span> are allowed to use this platform.
+              </p>
+              <p className="font-sans text-lg sm:text-xl text-black/80 text-center leading-relaxed">
+                You <span className="font-bold text-black">must</span> sign in with your college email:
+              </p>
+              <p className="font-mono text-base sm:text-lg text-center bg-black/5 py-3 px-4 rounded-lg border border-black/10">
+                @arkajainuniversity.ac.in
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button
+                onClick={() => setShowWarning(false)}
+                className="flex-1 bg-white text-black px-6 py-4 rounded-full font-display text-lg font-semibold border-2 border-black/20 hover:bg-black/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProceed}
+                className="flex-1 bg-black text-white px-6 py-4 rounded-full font-display text-lg font-semibold hover:bg-black/90 transition-all hover:scale-105 active:scale-95 shadow-xl"
+              >
+                Proceed →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fixed Background - CrowdCanvas */}
       <div className="fixed inset-0 z-0 opacity-30">
         <CrowdCanvas src="/hero-peeps.png" rows={15} cols={7} />
@@ -165,8 +215,12 @@ const LandingPageC1 = () => {
               
               {/* Enhanced CTA button */}
               <div className="pt-6 sm:pt-8 md:pt-10 px-4">
-                <button className="w-full sm:w-auto bg-black text-white px-12 sm:px-16 md:px-20 lg:px-24 py-5 sm:py-6 md:py-7 lg:py-8 rounded-full font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold hover:bg-black/90 transition-all hover:scale-105 shadow-2xl active:scale-95 border-4 border-black/10">
-                  Get Started →
+                <button 
+                  onClick={handleSignInClick}
+                  disabled={loading || !!user}
+                  className="w-full sm:w-auto bg-black text-white px-12 sm:px-16 md:px-20 lg:px-24 py-5 sm:py-6 md:py-7 lg:py-8 rounded-full font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold hover:bg-black/90 transition-all hover:scale-105 shadow-2xl active:scale-95 border-4 border-black/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {loading ? 'Loading...' : user ? 'Signed In →' : 'Sign In with Google →'}
                 </button>
               </div>
               

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono, Press_Start_2P } from "next/font/google";
 import "./globals.css";
 import {SpringMouseFollow} from "@/components/ui/skiper61";
+import { AuthProvider } from "@/lib/firebase-context";
+import { Toaster } from "sonner";
+import Nav from "@/components/Nav";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
@@ -42,8 +45,12 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} ${pressStart.variable} antialiased`}
       >
-        <SpringMouseFollow />
-        {children}
+        <AuthProvider>
+          <Nav />
+          <SpringMouseFollow />
+          {children}
+          <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+        </AuthProvider>
       </body>
     </html>
   );

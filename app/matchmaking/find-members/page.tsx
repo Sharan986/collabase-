@@ -29,12 +29,27 @@ interface UserCandidate {
   currentTeam: string | null;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  creatorId: string;
+  creatorName: string;
+  members: string[];
+  skillsNeeded: string[];
+  goal: 'win' | 'learn' | 'build';
+  timeCommitment: 'full-time' | 'partial';
+  state: 'DRAFT' | 'OPEN' | 'FINALIZED' | 'LOCKED';
+  whatsappLink?: string | null;
+  discordLink?: string | null;
+  createdAt: number;
+}
+
 export default function FindMembersPage() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const [candidates, setCandidates] = useState<UserCandidate[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
-  const [team, setTeam] = useState<any>(null);
+  const [team, setTeam] = useState<Team | null>(null);
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [sendingInvite, setSendingInvite] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,7 +92,7 @@ export default function FindMembersPage() {
           router.push('/matchmaking');
           return;
         }
-        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const teamData = { id: teamDoc.id, ...teamDoc.data() } as Team;
         setTeam(teamData);
 
         // Fetch users looking to join (intent === 'join')
@@ -126,7 +141,7 @@ export default function FindMembersPage() {
   const handleSendInvite = async (candidate: UserCandidate) => {
     if (!team || !user) return;
 
-    if (team.members.length >= 5) {
+    if ((team.members?.length || 0) >= 5) {
       toast.error('Team is full (max 5 members)');
       return;
     }

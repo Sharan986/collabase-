@@ -32,6 +32,12 @@ export default function CreateTeamPage() {
   const handleSubmit = async () => {
     if (!user || !userProfile) return;
 
+    // Check if user is already in a team
+    if (userProfile.currentTeam) {
+      toast.error('You are already in a team. Please leave your current team first.');
+      return;
+    }
+
     if (!teamName.trim()) {
       toast.error('Please enter a team name');
       return;
@@ -48,10 +54,11 @@ export default function CreateTeamPage() {
       const teamRef = await addDoc(collection(db, 'teams'), {
         name: teamName.trim(),
         creatorId: user.uid,
+        creatorName: userProfile.displayName || '',
         skillsNeeded,
         goal,
         timeCommitment,
-        state: 'OPEN', // Start as OPEN (auto-transition from DRAFT)
+        state: 'OPEN', // Team starts open for members to join
         members: [user.uid], // Creator is first member
         createdAt: Date.now(),
       });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/firebase-context';
 import { useRouter, useParams } from 'next/navigation';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, onSnapshot } from 'firebase/firestore';
@@ -25,6 +25,19 @@ export default function TeamDetailPage() {
   const [userRequestStatus, setUserRequestStatus] = useState<'none' | 'pending' | 'accepted' | 'rejected'>('none');
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
+  // Refs to access latest values in snapshot callback
+  const userRequestStatusRef = useRef(userRequestStatus);
+  const teamRef = useRef(team);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    userRequestStatusRef.current = userRequestStatus;
+  }, [userRequestStatus]);
+
+  useEffect(() => {
+    teamRef.current = team;
+  }, [team]);
+
   useEffect(() => {
     if (!teamId || !user) return;
 
@@ -40,19 +53,20 @@ export default function TeamDetailPage() {
         const teamData = { id: teamDoc.id, ...teamDoc.data() } as any;
         setTeam(teamData);
 
-        // Fetch member details
-        const details = [];
-        for (const memberId of teamData.members || []) {
-          const memberDoc = await getDoc(doc(db, 'users', memberId));
-          if (memberDoc.exists()) {
-            details.push({ id: memberId, ...memberDoc.data() });
-          }
-        }
+        // Fetch member details in parallel
+        const memberPromises = (teamData.members || []).map((memberId: string) =>
+          getDoc(doc(db, 'users', memberId))
+        );
+        const memberDocs = await Promise.all(memberPromises);
+        const details = memberDocs
+          .filter((memberDoc) => memberDoc.exists())
+          .map((memberDoc) => ({ id: memberDoc.id, ...memberDoc.data() }));
         setMemberDetails(details);
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching team:', error);
         toast.error('Failed to load team');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -72,13 +86,13 @@ export default function TeamDetailPage() {
         const request = snapshot.docs[0].data();
         const newStatus = request.status;
         
-        // Handle status changes with toasts
-        if (userRequestStatus === 'pending' && newStatus === 'rejected') {
-          toast.error(`Your request to ${team?.name} was rejected`);
+        // Handle status changes with toasts (use refs for latest values)
+        if (userRequestStatusRef.current === 'pending' && newStatus === 'rejected') {
+          toast.error(`Your request to ${teamRef.current?.name} was rejected`);
           // Redirect to matchmaking after rejection
           setTimeout(() => router.push('/matchmaking'), 2000);
-        } else if (userRequestStatus === 'pending' && newStatus === 'accepted') {
-          toast.success(`Welcome to ${team?.name}!`);
+        } else if (userRequestStatusRef.current === 'pending' && newStatus === 'accepted') {
+          toast.success(`Welcome to ${teamRef.current?.name}!`);
         }
         
         setUserRequestStatus(newStatus);
@@ -156,7 +170,7 @@ export default function TeamDetailPage() {
   const memberSkills = memberDetails.map(m => m.primarySkills || []);
   const coverage = calculateSkillCoverage(team.skillsNeeded, memberSkills);
   const missingSkills = getMissingSkills(team.skillsNeeded, memberSkills);
-  const canJoin = userRequestStatus === 'none' && team.members.length < 5 && team.state === 'OPEN';
+  const canJoin = userRequestStatus === 'none' && (team.members?.length ?? 0) < 5 && team.state === 'OPEN';
 
   return (
     <div className="relative min-h-screen w-full pt-20">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/firebase-context';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { themeClasses } from '@/lib/theme-utils';
 import { cn } from '@/lib/utils';
@@ -76,47 +76,44 @@ export default function InvitesPage() {
 
     setProcessingInvite(invite.id);
     try {
-      // Get team data to check if still valid
-      const teamDoc = await getDoc(doc(db, 'teams', invite.teamId));
-      if (!teamDoc.exists()) {
-        toast.error('Team no longer exists');
-        await updateDoc(doc(db, 'teamInvites', invite.id), { status: 'declined' });
-        setProcessingInvite(null);
-        return;
-      }
+      await runTransaction(db, async (transaction) => {
+        // Get team data atomically
+        const teamRef = doc(db, 'teams', invite.teamId);
+        const teamDoc = await transaction.get(teamRef);
+        
+        if (!teamDoc.exists()) {
+          throw new Error('TEAM_NOT_FOUND');
+        }
 
-      const teamData = teamDoc.data();
-      if (teamData.members?.length >= 5) {
-        toast.error('Team is already full');
-        await updateDoc(doc(db, 'teamInvites', invite.id), { status: 'declined' });
-        setProcessingInvite(null);
-        return;
-      }
+        const teamData = teamDoc.data();
+        if (teamData.members?.length >= 5) {
+          throw new Error('TEAM_FULL');
+        }
 
-      if (teamData.state !== 'OPEN') {
-        toast.error('Team is no longer accepting members');
-        await updateDoc(doc(db, 'teamInvites', invite.id), { status: 'declined' });
-        setProcessingInvite(null);
-        return;
-      }
+        if (teamData.state !== 'OPEN') {
+          throw new Error('TEAM_CLOSED');
+        }
 
-      // Add user to team
-      const updatedMembers = [...(teamData.members || []), user.uid];
-      await updateDoc(doc(db, 'teams', invite.teamId), {
-        members: updatedMembers,
+        // All validations passed - perform atomic updates
+        const updatedMembers = [...(teamData.members || []), user.uid];
+        
+        // Update team members
+        transaction.update(teamRef, {
+          members: updatedMembers,
+        });
+
+        // Update user's currentTeam
+        transaction.update(doc(db, 'users', user.uid), {
+          currentTeam: invite.teamId,
+        });
+
+        // Update invite status
+        transaction.update(doc(db, 'teamInvites', invite.id), {
+          status: 'accepted',
+        });
       });
 
-      // Update user's currentTeam
-      await updateDoc(doc(db, 'users', user.uid), {
-        currentTeam: invite.teamId,
-      });
-
-      // Update invite status
-      await updateDoc(doc(db, 'teamInvites', invite.id), {
-        status: 'accepted',
-      });
-
-      // Decline all other pending invites
+      // Decline all other pending invites (outside transaction - not critical)
       for (const otherInvite of invites.filter(i => i.id !== invite.id)) {
         await updateDoc(doc(db, 'teamInvites', otherInvite.id), {
           status: 'declined',
@@ -126,9 +123,22 @@ export default function InvitesPage() {
       await refreshProfile();
       toast.success(`You joined ${invite.teamName}!`);
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accepting invite:', error);
-      toast.error('Failed to accept invite');
+      
+      // Handle specific validation errors
+      if (error.message === 'TEAM_NOT_FOUND') {
+        toast.error('Team no longer exists');
+        await updateDoc(doc(db, 'teamInvites', invite.id), { status: 'declined' });
+      } else if (error.message === 'TEAM_FULL') {
+        toast.error('Team is already full');
+        await updateDoc(doc(db, 'teamInvites', invite.id), { status: 'declined' });
+      } else if (error.message === 'TEAM_CLOSED') {
+        toast.error('Team is no longer accepting members');
+        await updateDoc(doc(db, 'teamInvites', invite.id), { status: 'declined' });
+      } else {
+        toast.error('Failed to accept invite');
+      }
     } finally {
       setProcessingInvite(null);
     }

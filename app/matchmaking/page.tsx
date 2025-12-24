@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/firebase-context';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, documentId } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getTopMatches, calculateSkillCoverage, getMissingSkills } from '@/lib/match-algorithm';
 import { themeClasses, getStateBadgeClass } from '@/lib/theme-utils';
@@ -27,6 +27,7 @@ export default function MatchmakingPage() {
   const router = useRouter();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
   const [topMatchIds, setTopMatchIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function MatchmakingPage() {
 
     const fetchTeams = async () => {
       setLoadingTeams(true);
+      setTeamsError(null);
       try {
         if (userProfile.intent === 'join') {
           // Fetch teams looking for members (OPEN state)
@@ -53,20 +55,47 @@ export default function MatchmakingPage() {
           const snapshot = await getDocs(teamsQuery);
           
           const teamsData: Team[] = [];
+          const allMemberIds = new Set<string>();
+          
+          // First pass: collect all teams and member IDs
           for (const docSnap of snapshot.docs) {
             const teamData = { id: docSnap.id, ...docSnap.data() } as Team;
+            teamsData.push(teamData);
             
-            // Fetch member details
+            // Collect all unique member IDs
+            for (const memberId of teamData.members || []) {
+              allMemberIds.add(memberId);
+            }
+          }
+          
+          // Batch fetch all member details (max 10 per query due to Firestore 'in' limit)
+          const memberIdsArray = Array.from(allMemberIds);
+          const membersMap = new Map<string, any>();
+          
+          for (let i = 0; i < memberIdsArray.length; i += 10) {
+            const batch = memberIdsArray.slice(i, i + 10);
+            if (batch.length > 0) {
+              const membersQuery = query(
+                collection(db, 'users'),
+                where(documentId(), 'in', batch)
+              );
+              const membersSnapshot = await getDocs(membersQuery);
+              membersSnapshot.forEach((memberDoc) => {
+                membersMap.set(memberDoc.id, memberDoc.data());
+              });
+            }
+          }
+          
+          // Second pass: populate member details from map
+          for (const teamData of teamsData) {
             const memberDetails = [];
             for (const memberId of teamData.members || []) {
-              const memberDoc = await getDoc(doc(db, 'users', memberId));
-              if (memberDoc.exists()) {
-                memberDetails.push(memberDoc.data());
+              const memberData = membersMap.get(memberId);
+              if (memberData) {
+                memberDetails.push(memberData);
               }
             }
             teamData.memberDetails = memberDetails;
-            
-            teamsData.push(teamData);
           }
           
           setTeams(teamsData);
@@ -89,6 +118,7 @@ export default function MatchmakingPage() {
         }
       } catch (error) {
         console.error('Error fetching teams:', error);
+        setTeamsError('Failed to load teams. Please try again.');
       } finally {
         setLoadingTeams(false);
       }
@@ -193,6 +223,26 @@ export default function MatchmakingPage() {
                   {loadingTeams ? (
                     <div className="text-center py-12">
                       <p className="font-mono text-black/40">Loading teams...</p>
+                    </div>
+                  ) : teamsError ? (
+                    <div className={cn(themeClasses.card, 'p-12 text-center')}>
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
+                      <h3 className={cn(themeClasses.headingPixel, 'text-2xl mb-4')}>
+                        OOPS!
+                      </h3>
+                      <p className="font-sans text-black/60 mb-6">
+                        {teamsError}
+                      </p>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className={themeClasses.buttonPrimary}
+                      >
+                        Retry
+                      </button>
                     </div>
                   ) : teams.length === 0 ? (
                     <div className={cn(themeClasses.card, 'p-12 text-center')}>

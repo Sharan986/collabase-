@@ -6,17 +6,18 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
+interface NavItem {
+  name: string;
+  link: string;
+  icon?: JSX.Element;
+  onClick?: () => void;
+}
 
 export const FloatingNav = ({
   navItems,
   className,
 }: {
-  navItems: {
-    name: string;
-    link: string;
-    icon?: JSX.Element;
-    onClick?: () => void;
-  }[];
+  navItems: NavItem[];
   className?: string;
 }) => {
   const handleClick = (e: React.MouseEvent, item: { link: string; onClick?: () => void }) => {
@@ -25,12 +26,14 @@ export const FloatingNav = ({
       item.onClick();
     } else if (item.link.startsWith('http')) {
       e.preventDefault();
-      window.open(item.link, '_blank');
+      const newWin = window.open(item.link, '_blank', 'noopener,noreferrer');
+      if (newWin) newWin.opener = null;
     }
   };
 
   return (
-    <motion.div
+    <motion.nav
+      aria-label="Primary navigation"
       initial={{
         opacity: 0,
         y: -20,
@@ -48,7 +51,7 @@ export const FloatingNav = ({
         className
       )}
     >
-      {navItems.map((navItem: any, idx: number) => {
+      {navItems.map((navItem: NavItem, idx: number) => {
         const isSignOut = navItem.name === 'Sign Out';
         const baseClasses = cn(
           "relative items-center flex gap-1.5 px-3 sm:px-4 py-2 rounded-full transition-all duration-200 text-sm font-display font-semibold",
@@ -83,6 +86,6 @@ export const FloatingNav = ({
           </Link>
         );
       })}
-    </motion.div>
+    </motion.nav>
   );
 };

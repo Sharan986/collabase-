@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/firebase-context';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, collection, query, where, onSnapshot, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, updateDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { themeClasses, getStateBadgeClass } from '@/lib/theme-utils';
 import { cn } from '@/lib/utils';
@@ -95,10 +95,11 @@ export default function DashboardPage() {
           }
         }
         setMemberDetails(details);
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching team:', error);
         toast.error('Failed to load team');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -136,21 +137,25 @@ export default function DashboardPage() {
     }
 
     try {
-      // Add user to team
+      const batch = writeBatch(db);
       const updatedMembers = [...team.members, request.userId];
-      await updateDoc(doc(db, 'teams', team.id), {
+
+      // Add user to team
+      batch.update(doc(db, 'teams', team.id), {
         members: updatedMembers,
       });
 
       // Update request status
-      await updateDoc(doc(db, 'joinRequests', request.id), {
+      batch.update(doc(db, 'joinRequests', request.id), {
         status: 'accepted',
       });
 
       // Update user's currentTeam
-      await updateDoc(doc(db, 'users', request.userId), {
+      batch.update(doc(db, 'users', request.userId), {
         currentTeam: team.id,
       });
+
+      await batch.commit();
 
       // Refresh team data
       const teamDoc = await getDoc(doc(db, 'teams', team.id));
@@ -187,15 +192,18 @@ export default function DashboardPage() {
     if (!team || team.creatorId !== user?.uid) return;
 
     try {
+      const batch = writeBatch(db);
       const updatedMembers = team.members.filter((id: string) => id !== memberId);
       
-      await updateDoc(doc(db, 'teams', team.id), {
+      batch.update(doc(db, 'teams', team.id), {
         members: updatedMembers,
       });
 
-      await updateDoc(doc(db, 'users', memberId), {
+      batch.update(doc(db, 'users', memberId), {
         currentTeam: null,
       });
+
+      await batch.commit();
 
       setTeam({ ...team, members: updatedMembers } as Team);
       setMemberDetails(memberDetails.filter(m => m.id !== memberId));
@@ -212,9 +220,11 @@ export default function DashboardPage() {
     if (!team || team.creatorId !== user?.uid) return;
 
     try {
+      const batch = writeBatch(db);
+
       // Remove all members
       for (const memberId of team.members) {
-        await updateDoc(doc(db, 'users', memberId), {
+        batch.update(doc(db, 'users', memberId), {
           currentTeam: null,
         });
       }
@@ -225,12 +235,14 @@ export default function DashboardPage() {
         where('teamId', '==', team.id)
       );
       const requestsSnapshot = await getDocs(requestsQuery);
-      for (const doc of requestsSnapshot.docs) {
-        await deleteDoc(doc.ref);
+      for (const requestDoc of requestsSnapshot.docs) {
+        batch.delete(requestDoc.ref);
       }
 
       // Delete team
-      await deleteDoc(doc(db, 'teams', team.id));
+      batch.delete(doc(db, 'teams', team.id));
+
+      await batch.commit();
 
       await refreshProfile();
       toast.success('Team deleted');
@@ -286,6 +298,9 @@ export default function DashboardPage() {
     if (!team || !user) return;
 
     try {
+      const batch = writeBatch(db);
+      const updatedMembers = team.members.filter((id: string) => id !== user.uid);
+
       // If user is creator, they must promote someone first
       if (isCreator) {
         if (!selectedNewCreator) {
@@ -293,24 +308,28 @@ export default function DashboardPage() {
           return;
         }
 
+        // Get new creator's details for updating creatorName
+        const newCreatorDetails = memberDetails.find(m => m.id === selectedNewCreator);
+
         // Promote new creator and remove current user
-        const updatedMembers = team.members.filter((id: string) => id !== user.uid);
-        await updateDoc(doc(db, 'teams', team.id), {
+        batch.update(doc(db, 'teams', team.id), {
           creatorId: selectedNewCreator,
+          creatorName: newCreatorDetails?.displayName || '',
           members: updatedMembers,
         });
       } else {
         // Regular member leaving
-        const updatedMembers = team.members.filter((id: string) => id !== user.uid);
-        await updateDoc(doc(db, 'teams', team.id), {
+        batch.update(doc(db, 'teams', team.id), {
           members: updatedMembers,
         });
       }
 
       // Clear user's currentTeam
-      await updateDoc(doc(db, 'users', user.uid), {
+      batch.update(doc(db, 'users', user.uid), {
         currentTeam: null,
       });
+
+      await batch.commit();
 
       await refreshProfile();
       toast.success('You left the team');

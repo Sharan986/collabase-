@@ -166,11 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // Only log non-user-action errors
-      if (error.code !== 'auth/popup-blocked') {
-        // Suppress console error for expected auth errors
-      }
-      
       // Handle specific Firebase auth errors with toasts
       if (error.code === 'auth/popup-blocked') {
         toast.error('Pop-up blocked. Please allow pop-ups for this site.', {

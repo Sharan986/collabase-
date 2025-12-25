@@ -33,6 +33,9 @@ const pressStart = Press_Start_2P({
 export const metadata: Metadata = {
   title: "Collabase - Find Your Hackathon Team",
   description: "Form balanced hackathon teams in minutes. Match skills, build serious teams, and collaborate better.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

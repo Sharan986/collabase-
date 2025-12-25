@@ -190,14 +190,22 @@ export default function MatchmakingPage() {
                   </div>
 
                   <div>
-                    <p className={cn(themeClasses.textMono, 'mb-2')}>Goal</p>
-                    <p className="font-sans capitalize">{userProfile.goal}</p>
+                    <p className={cn(themeClasses.textMono, 'mb-2')}>Role</p>
+                    <p className="font-sans capitalize">{userProfile.role}</p>
                   </div>
+                </div>
 
-                  <div>
-                    <p className={cn(themeClasses.textMono, 'mb-2')}>Time</p>
-                    <p className="font-sans capitalize">{userProfile.timeAvailability?.replace('-', ' ')}</p>
-                  </div>
+                {/* Support */}
+                <div className="mt-6 pt-6 border-t border-black/10">
+                  <p className="font-mono text-[0.625rem] text-black/30">
+                    Need help?{' '}
+                    <a 
+                      href="mailto:collabase.app@gmail.com" 
+                      className="text-black/50 hover:text-black transition-colors underline underline-offset-2"
+                    >
+                      collabase.app@gmail.com
+                    </a>
+                  </p>
                 </div>
               </div>
             </div>
@@ -323,15 +331,15 @@ export default function MatchmakingPage() {
                               </div>
                             )}
 
-                            {/* Team Info */}
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                              <div>
-                                <p className={cn(themeClasses.textMono, 'mb-1')}>Goal</p>
-                                <p className="font-sans capitalize">{team.goal}</p>
-                              </div>
-                              <div>
-                                <p className={cn(themeClasses.textMono, 'mb-1')}>Time</p>
-                                <p className="font-sans capitalize">{team.timeCommitment?.replace('-', ' ')}</p>
+                            {/* Skills Needed */}
+                            <div className="mb-6">
+                              <p className={cn(themeClasses.textMono, 'mb-2')}>Skills Needed</p>
+                              <div className="flex flex-wrap gap-2">
+                                {team.skillsNeeded?.map((skill: string) => (
+                                  <span key={skill} className={cn(themeClasses.badge, themeClasses.badgeSecondary)}>
+                                    {skill}
+                                  </span>
+                                ))}
                               </div>
                             </div>
 

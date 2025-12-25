@@ -13,6 +13,9 @@ interface UserProfile {
   photoURL: string | null;
   profileCompleted: boolean;
   intent?: 'join' | 'create';
+  gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
+  year?: string;
+  course?: string;
   primarySkills?: string[];
   secondarySkills?: string[];
   role?: string;

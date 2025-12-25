@@ -65,7 +65,7 @@ const LandingPageC1 = () => {
       {/* Scrollable Content */}
       <div className="relative z-10">
         {/* Section 1: Hero */}
-        <section className="flex h-screen w-full items-center justify-center px-4 sm:px-6 snap-start snap-always overflow-hidden">
+        <section className="flex h-screen w-full items-center justify-center px-4 sm:px-6 snap-start snap-always overflow-hidden relative">
           <div className="mx-auto max-w-7xl text-center w-full -mt-100 lg:-mt-55  sm:-mt-16 md:-mt-12 lg:-mt-8">
             <div className="space-y-3 sm:space-y-4 md:space-y-6">
               <p className="font-mono text-[0.625rem] sm:text-xs md:text-sm font-medium text-black/40 uppercase tracking-[0.2em] sm:tracking-[0.3em]">
@@ -77,6 +77,16 @@ const LandingPageC1 = () => {
               <p className="font-sans text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-light text-black/70 max-w-5xl mx-auto leading-relaxed px-4">
                 Stop wasting time. Find your perfect hackathon team in <span className="font-semibold text-black">minutes</span>.
               </p>
+            </div>
+          </div>
+          
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-8 sm:bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
+            <span className="font-mono text-[0.625rem] sm:text-xs text-black/40 uppercase tracking-[0.2em]">
+              Scroll
+            </span>
+            <div className="w-6 h-10 sm:w-7 sm:h-12 rounded-full border-2 border-black/30 flex items-start justify-center p-1.5 sm:p-2">
+              <div className="w-1.5 h-2.5 sm:w-2 sm:h-3 bg-black/40 rounded-full animate-[scrollPulse_1.5s_ease-in-out_infinite]" />
             </div>
           </div>
         </section>
@@ -231,6 +241,19 @@ const LandingPageC1 = () => {
                     One hackathon. One team. One shot.
                   </p>
                 </div>
+              </div>
+
+              {/* Support Email */}
+              <div className="pt-8 sm:pt-10 px-4">
+                <p className="font-mono text-[0.625rem] sm:text-xs text-black/30">
+                  Need help? Contact us at{' '}
+                  <a 
+                    href="mailto:collabase.app@gmail.com" 
+                    className="text-black/50 hover:text-black transition-colors underline underline-offset-2"
+                  >
+                    collabase.app@gmail.com
+                  </a>
+                </p>
               </div>
             </div>
           </div>

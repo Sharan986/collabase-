@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/firebase-context';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { SKILLS, ROLES, TIME_AVAILABILITY, GOALS } from '@/lib/constants';
+import { SKILLS, ROLES, TIME_AVAILABILITY, GOALS, GENDERS, YEARS, COURSES } from '@/lib/constants';
 import { toast } from 'sonner';
 
 export default function OnboardingPage() {
@@ -16,6 +16,9 @@ export default function OnboardingPage() {
 
   // Form state
   const [intent, setIntent] = useState<'join' | 'create' | null>(null);
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | 'prefer-not-to-say' | null>(null);
+  const [year, setYear] = useState<string>('');
+  const [course, setCourse] = useState<string>('');
   const [primarySkills, setPrimarySkills] = useState<string[]>([]);
   const [secondarySkills, setSecondarySkills] = useState('');
   const [role, setRole] = useState('');
@@ -57,6 +60,9 @@ export default function OnboardingPage() {
       await updateDoc(userRef, {
         profileCompleted: true,
         intent,
+        gender,
+        year,
+        course,
         primarySkills,
         secondarySkills: secondarySkillsArray,
         role,
@@ -80,7 +86,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const canProceedToStep2 = intent !== null;
+  const canProceedToStep2 = intent !== null && gender !== null && year !== '' && course !== '';
   const canProceedToStep3 = primarySkills.length > 0 && role;
   const canSubmit = canProceedToStep3;
 
@@ -118,37 +124,115 @@ export default function OnboardingPage() {
               <div>
                 <p className="font-mono text-xs text-black/40 uppercase tracking-wider mb-3">Step 1 of 4</p>
                 <h1 className="font-pixel text-4xl sm:text-5xl tracking-wider mb-4">
-                  What brings you here?
+                  Let&apos;s get started
                 </h1>
                 <p className="font-sans text-lg text-black/60">
-                  Choose your path. No changing later.
+                  Tell us about yourself and your goal.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <button
-                  onClick={() => setIntent('join')}
-                  className={`p-8 rounded-2xl border-2 transition-all hover:scale-105 ${
-                    intent === 'join'
-                      ? 'border-black bg-black text-white'
-                      : 'border-black/20 bg-white/50 hover:border-black/40'
-                  }`}
-                >
-                  <div className="font-pixel text-2xl mb-2">JOIN</div>
-                  <div className="font-sans text-sm">Find an existing team</div>
-                </button>
+              {/* Gender Selection */}
+              <div>
+                <label className="font-display font-bold text-sm uppercase tracking-wide mb-3 block">
+                  Gender *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {GENDERS.map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setGender(g)}
+                      className={`px-4 py-3 rounded-lg border-2 transition-all text-sm ${
+                        gender === g
+                          ? 'border-black bg-black text-white'
+                          : 'border-black/20 bg-white/50 hover:border-black/40'
+                      }`}
+                    >
+                      <span className="font-sans capitalize">{g.replace(/-/g, ' ')}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                <button
-                  onClick={() => setIntent('create')}
-                  className={`p-8 rounded-2xl border-2 transition-all hover:scale-105 ${
-                    intent === 'create'
-                      ? 'border-black bg-black text-white'
-                      : 'border-black/20 bg-white/50 hover:border-black/40'
-                  }`}
-                >
-                  <div className="font-pixel text-2xl mb-2">CREATE</div>
-                  <div className="font-sans text-sm">Build a new team</div>
-                </button>
+              {/* Year & Course Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Year */}
+                <div>
+                  <label className="font-display font-bold text-sm uppercase tracking-wide mb-3 block">
+                    Year *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {YEARS.map((y) => (
+                      <button
+                        key={y}
+                        onClick={() => setYear(y)}
+                        className={`px-4 py-3 rounded-lg border-2 transition-all text-sm ${
+                          year === y
+                            ? 'border-black bg-black text-white'
+                            : 'border-black/20 bg-white/50 hover:border-black/40'
+                        }`}
+                      >
+                        <span className="font-sans">{y}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Course */}
+                <div>
+                  <label className="font-display font-bold text-sm uppercase tracking-wide mb-3 block">
+                    Course *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {COURSES.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setCourse(c)}
+                        className={`px-4 py-3 rounded-lg border-2 transition-all text-sm ${
+                          course === c
+                            ? 'border-black bg-black text-white'
+                            : 'border-black/20 bg-white/50 hover:border-black/40'
+                        }`}
+                      >
+                        <span className="font-sans">{c}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Intent Selection */}
+              <div>
+                <label className="font-display font-bold text-sm uppercase tracking-wide mb-3 block">
+                  What brings you here? *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <button
+                    onClick={() => setIntent('join')}
+                    className={`p-8 rounded-2xl border-2 transition-all hover:scale-105 ${
+                      intent === 'join'
+                        ? 'border-black bg-black text-white'
+                        : 'border-black/20 bg-white/50 hover:border-black/40'
+                    }`}
+                  >
+                    <div className="font-pixel text-2xl mb-2">JOIN</div>
+                    <div className="font-sans text-sm">Find an existing team</div>
+                  </button>
+
+                  <button
+                    onClick={() => setIntent('create')}
+                    className={`p-8 rounded-2xl border-2 transition-all hover:scale-105 ${
+                      intent === 'create'
+                        ? 'border-black bg-black text-white'
+                        : 'border-black/20 bg-white/50 hover:border-black/40'
+                    }`}
+                  >
+                    <div className="font-pixel text-2xl mb-2">CREATE</div>
+                    <div className="font-sans text-sm">Build a new team</div>
+                  </button>
+                </div>
+                <p className="text-xs text-black/40 mt-2 font-mono">
+                  You can change this later in your profile settings.
+                </p>
               </div>
 
               <div className="flex justify-end">
@@ -381,9 +465,26 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-6">
-                <div className="p-6 bg-white/50 rounded-xl border border-black/10">
-                  <p className="font-mono text-xs text-black/40 mb-2">INTENT</p>
-                  <p className="font-display text-2xl uppercase">{intent}</p>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="p-6 bg-white/50 rounded-xl border border-black/10">
+                    <p className="font-mono text-xs text-black/40 mb-2">INTENT</p>
+                    <p className="font-display text-2xl uppercase">{intent}</p>
+                  </div>
+                  <div className="p-6 bg-white/50 rounded-xl border border-black/10">
+                    <p className="font-mono text-xs text-black/40 mb-2">GENDER</p>
+                    <p className="font-sans capitalize">{gender?.replace(/-/g, ' ')}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="p-6 bg-white/50 rounded-xl border border-black/10">
+                    <p className="font-mono text-xs text-black/40 mb-2">YEAR</p>
+                    <p className="font-sans">{year}</p>
+                  </div>
+                  <div className="p-6 bg-white/50 rounded-xl border border-black/10">
+                    <p className="font-mono text-xs text-black/40 mb-2">COURSE</p>
+                    <p className="font-sans">{course}</p>
+                  </div>
                 </div>
 
                 <div className="p-6 bg-white/50 rounded-xl border border-black/10">

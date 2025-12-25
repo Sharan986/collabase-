@@ -8,8 +8,9 @@ import { db } from '@/lib/firebase';
 import { themeClasses } from '@/lib/theme-utils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { YEARS, COURSES, GENDERS } from '@/lib/constants';
 import { motion } from 'motion/react';
-import { Users, Target, Clock, Sparkles, Search, Send, UserPlus, ExternalLink, Filter, Star, ArrowLeft } from 'lucide-react';
+import { Users, Target, Clock, Sparkles, Search, Send, UserPlus, ExternalLink, Star, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface UserCandidate {
@@ -27,6 +28,9 @@ interface UserCandidate {
     portfolio?: string;
   };
   currentTeam: string | null;
+  year?: string;
+  course?: string;
+  gender?: string;
 }
 
 interface Team {
@@ -53,8 +57,9 @@ export default function FindMembersPage() {
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [sendingInvite, setSendingInvite] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterGoal, setFilterGoal] = useState<string>('all');
-  const [filterTime, setFilterTime] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState('');
+  const [courseFilter, setCourseFilter] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -197,12 +202,15 @@ export default function FindMembersPage() {
         const matchesName = c.displayName?.toLowerCase().includes(query);
         const matchesSkill = [...(c.primarySkills || []), ...(c.secondarySkills || [])]
           .some(skill => skill.toLowerCase().includes(query));
-        if (!matchesName && !matchesSkill) return false;
+        const matchesRole = c.role?.toLowerCase().includes(query);
+        if (!matchesName && !matchesSkill && !matchesRole) return false;
       }
-      // Goal filter
-      if (filterGoal !== 'all' && c.goal !== filterGoal) return false;
-      // Time filter
-      if (filterTime !== 'all' && c.timeAvailability !== filterTime) return false;
+      // Year filter
+      if (yearFilter && c.year !== yearFilter) return false;
+      // Course filter
+      if (courseFilter && c.course !== courseFilter) return false;
+      // Gender filter
+      if (genderFilter && c.gender !== genderFilter) return false;
       return true;
     })
     .map(c => ({ ...c, matchScore: calculateMatchScore(c) }))
@@ -295,7 +303,7 @@ export default function FindMembersPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className={cn(themeClasses.card, 'p-4 sm:p-6 mb-6 sm:mb-8')}
           >
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               {/* Search */}
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black/30" />
@@ -303,31 +311,47 @@ export default function FindMembersPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or skill..."
+                  placeholder="Search by name, skill, or role..."
                   className={cn(themeClasses.input, 'pl-10 text-sm')}
                 />
               </div>
               
-              {/* Filters */}
-              <div className="flex gap-3">
+              {/* Filter Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Year Filter */}
                 <select
-                  value={filterGoal}
-                  onChange={(e) => setFilterGoal(e.target.value)}
-                  className={cn(themeClasses.input, 'text-sm w-auto')}
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                  className={cn(themeClasses.input, 'text-sm')}
                 >
-                  <option value="all">All Goals</option>
-                  <option value="win">Win</option>
-                  <option value="learn">Learn</option>
-                  <option value="build">Build</option>
+                  <option value="">All Years</option>
+                  {YEARS.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
                 </select>
+
+                {/* Course Filter */}
                 <select
-                  value={filterTime}
-                  onChange={(e) => setFilterTime(e.target.value)}
-                  className={cn(themeClasses.input, 'text-sm w-auto')}
+                  value={courseFilter}
+                  onChange={(e) => setCourseFilter(e.target.value)}
+                  className={cn(themeClasses.input, 'text-sm')}
                 >
-                  <option value="all">All Availability</option>
-                  <option value="full-time">Full-time</option>
-                  <option value="partial">Partial</option>
+                  <option value="">All Courses</option>
+                  {COURSES.map(course => (
+                    <option key={course} value={course}>{course}</option>
+                  ))}
+                </select>
+
+                {/* Gender Filter */}
+                <select
+                  value={genderFilter}
+                  onChange={(e) => setGenderFilter(e.target.value)}
+                  className={cn(themeClasses.input, 'text-sm')}
+                >
+                  <option value="">All Genders</option>
+                  {GENDERS.map(gender => (
+                    <option key={gender} value={gender}>{gender}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -387,8 +411,8 @@ export default function FindMembersPage() {
                 </div>
                 <h3 className="font-display font-bold text-xl mb-2">No Candidates Found</h3>
                 <p className="text-black/60">
-                  {searchQuery || filterGoal !== 'all' || filterTime !== 'all'
-                    ? 'Try adjusting your filters'
+                  {searchQuery
+                    ? 'Try a different search term'
                     : 'No users are currently looking to join a team'}
                 </p>
               </div>
@@ -409,6 +433,19 @@ export default function FindMembersPage() {
               </div>
             )}
           </motion.div>
+
+          {/* Support */}
+          <div className="mt-12 text-center">
+            <p className="font-mono text-[0.625rem] sm:text-xs text-black/30">
+              Need help?{' '}
+              <a 
+                href="mailto:collabase.app@gmail.com" 
+                className="text-black/50 hover:text-black transition-colors underline underline-offset-2"
+              >
+                collabase.app@gmail.com
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -482,6 +519,27 @@ function CandidateCard({
           )}
         </div>
       </div>
+
+      {/* Year, Course, Gender */}
+      {(candidate.year || candidate.course || candidate.gender) && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {candidate.year && (
+            <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
+              {candidate.year}
+            </span>
+          )}
+          {candidate.course && (
+            <span className="text-xs px-2 py-1 bg-purple-50 text-purple-600 rounded-full">
+              {candidate.course}
+            </span>
+          )}
+          {candidate.gender && (
+            <span className="text-xs px-2 py-1 bg-pink-50 text-pink-600 rounded-full">
+              {candidate.gender}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Meta */}
       <div className="flex items-center gap-4 text-xs text-black/50 mb-4">

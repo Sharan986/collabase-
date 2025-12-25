@@ -402,7 +402,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+            <div className="lg:col-span-2 space-y-6 sm:space-y-8 order-2 lg:order-1">
               {/* Team Overview */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -623,8 +623,8 @@ export default function DashboardPage() {
               </motion.div>
             </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-6">
+            {/* Sidebar - Join Requests: Shows first on mobile for notifications visibility */}
+            <div className="lg:col-span-1 order-1 lg:order-2">
               {/* Join Requests - Shown first/higher for visibility */}
               {isCreator && team.state === 'OPEN' && (
                 <motion.div 
@@ -704,7 +704,10 @@ export default function DashboardPage() {
                   )}
                 </motion.div>
               )}
+            </div>
 
+            {/* Quick Actions - Shows last on mobile */}
+            <div className="lg:col-span-1 order-3 lg:order-2">
               {/* Actions */}
               {!isLocked && (
                 <motion.div 
@@ -753,6 +756,19 @@ export default function DashboardPage() {
                 </motion.div>
               )}
             </div>
+          </div>
+
+          {/* Support */}
+          <div className="mt-12 text-center">
+            <p className="font-mono text-[0.625rem] sm:text-xs text-black/30">
+              Need help?{' '}
+              <a 
+                href="mailto:collabase.app@gmail.com" 
+                className="text-black/50 hover:text-black transition-colors underline underline-offset-2"
+              >
+                collabase.app@gmail.com
+              </a>
+            </p>
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/firebase-context';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { SKILLS, ROLES, TIME_AVAILABILITY, GOALS } from '@/lib/constants';
+import { SKILLS, ROLES, TIME_AVAILABILITY, GOALS, GENDERS, YEARS, COURSES } from '@/lib/constants';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { User, Save, ArrowLeft, Github, Linkedin, Globe, Mail, Clock, Target, ChevronDown, ChevronUp } from 'lucide-react';
@@ -16,6 +16,10 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
 
   // Form state - initialized from userProfile
+  const [intent, setIntent] = useState<'join' | 'create'>('join');
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | 'prefer-not-to-say'>('prefer-not-to-say');
+  const [year, setYear] = useState<string>('');
+  const [course, setCourse] = useState<string>('');
   const [primarySkills, setPrimarySkills] = useState<string[]>([]);
   const [secondarySkills, setSecondarySkills] = useState('');
   const [role, setRole] = useState('');
@@ -32,6 +36,10 @@ export default function ProfilePage() {
   // Initialize form with existing data
   useEffect(() => {
     if (userProfile) {
+      setIntent(userProfile.intent || 'join');
+      setGender(userProfile.gender || 'prefer-not-to-say');
+      setYear(userProfile.year || '');
+      setCourse(userProfile.course || '');
       setPrimarySkills(userProfile.primarySkills || []);
       setSecondarySkills((userProfile.secondarySkills || []).join(', '));
       setRole(userProfile.role || '');
@@ -83,6 +91,10 @@ export default function ProfilePage() {
         .filter(s => s.length > 0);
 
       await updateDoc(userRef, {
+        intent,
+        gender,
+        year,
+        course,
         primarySkills,
         secondarySkills: secondarySkillsArray,
         role,
@@ -183,6 +195,114 @@ export default function ProfilePage() {
             transition={{ delay: 0.1 }}
             className="backdrop-blur-lg bg-white/70 p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl border border-black/10 space-y-6 sm:space-y-8"
           >
+            {/* Intent & Gender Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              {/* Intent */}
+              <div>
+                <label className="font-display font-bold text-xs sm:text-sm uppercase tracking-wide mb-2 sm:mb-3 block">
+                  Your Intent
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setIntent('join')}
+                    disabled={!!userProfile?.currentTeam}
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-sans transition-all ${
+                      intent === 'join'
+                        ? 'border-black bg-black text-white'
+                        : 'border-black/20 bg-white/50 hover:border-black/40'
+                    } ${userProfile?.currentTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    Join Team
+                  </button>
+                  <button
+                    onClick={() => setIntent('create')}
+                    disabled={!!userProfile?.currentTeam}
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-sans transition-all ${
+                      intent === 'create'
+                        ? 'border-black bg-black text-white'
+                        : 'border-black/20 bg-white/50 hover:border-black/40'
+                    } ${userProfile?.currentTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    Create Team
+                  </button>
+                </div>
+                {userProfile?.currentTeam && (
+                  <p className="text-xs text-black/40 mt-2 font-mono">
+                    Leave your team to change intent
+                  </p>
+                )}
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label className="font-display font-bold text-xs sm:text-sm uppercase tracking-wide mb-2 sm:mb-3 block">
+                  Gender
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {GENDERS.map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setGender(g)}
+                      className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-sans transition-all ${
+                        gender === g
+                          ? 'border-black bg-black text-white'
+                          : 'border-black/20 bg-white/50 hover:border-black/40'
+                      }`}
+                    >
+                      <span className="capitalize">{g.replace(/-/g, ' ')}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Year & Course Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              {/* Year */}
+              <div>
+                <label className="font-display font-bold text-xs sm:text-sm uppercase tracking-wide mb-2 sm:mb-3 block">
+                  Year
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {YEARS.map((y) => (
+                    <button
+                      key={y}
+                      onClick={() => setYear(y)}
+                      className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-sans transition-all ${
+                        year === y
+                          ? 'border-black bg-black text-white'
+                          : 'border-black/20 bg-white/50 hover:border-black/40'
+                      }`}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Course */}
+              <div>
+                <label className="font-display font-bold text-xs sm:text-sm uppercase tracking-wide mb-2 sm:mb-3 block">
+                  Course
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {COURSES.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCourse(c)}
+                      className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-sans transition-all ${
+                        course === c
+                          ? 'border-black bg-black text-white'
+                          : 'border-black/20 bg-white/50 hover:border-black/40'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Primary Skills */}
             <div>
               <label className="font-display font-bold text-xs sm:text-sm uppercase tracking-wide mb-2 sm:mb-3 block">
@@ -357,16 +477,6 @@ export default function ProfilePage() {
               </button>
             </div>
           </motion.div>
-
-          {/* Info Note */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-center text-black/40 font-mono text-xs mt-6"
-          >
-            Note: Your intent (Create/Join) cannot be changed after onboarding.
-          </motion.p>
         </div>
       </div>
     </div>
